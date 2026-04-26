@@ -1,0 +1,352 @@
+{
+  "info": {
+    "_postman_id": "eb345d8b-5777-4f81-af1c-5d1e2e132431",
+    "name": "Content Broadcasting System API",
+    "description": "API Collection for the Content Broadcasting System Assignment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (Teacher)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success) {",
+                  "    pm.environment.set(\"TEACHER_TOKEN\", responseJson.data.token);",
+                  "    pm.environment.set(\"TEACHER_ID\", responseJson.data.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"teacher1@school.com\",\n    \"password\": \"teacher@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login (Principal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success) {",
+                  "    pm.environment.set(\"PRINCIPAL_TOKEN\", responseJson.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"principal@school.com\",\n    \"password\": \"principal@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/auth/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Content Management (Teacher)",
+      "item": [
+        {
+          "name": "Upload Content",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TEACHER_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Maths Chapter 1 Notes",
+                  "type": "text"
+                },
+                {
+                  "key": "subject",
+                  "value": "Maths",
+                  "type": "text"
+                },
+                {
+                  "key": "start_time",
+                  "value": "2024-05-01T00:00:00Z",
+                  "type": "text"
+                },
+                {
+                  "key": "end_time",
+                  "value": "2024-12-31T23:59:59Z",
+                  "type": "text"
+                },
+                {
+                  "key": "duration_minutes",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "test_image.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/content/upload",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "content",
+                "upload"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success && responseJson.data.content.length > 0) {",
+                  "    pm.environment.set(\"CONTENT_ID\", responseJson.data.content[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{TEACHER_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/content/my",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "content",
+                "my"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Approval Workflow (Principal)",
+      "item": [
+        {
+          "name": "Get Pending Content",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{PRINCIPAL_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/approval/pending",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "approval",
+                "pending"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve Content",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{PRINCIPAL_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/approval/:contentId/approve",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "approval",
+                ":contentId",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "contentId",
+                  "value": "{{CONTENT_ID}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Public Broadcasting API",
+      "item": [
+        {
+          "name": "Get Live Content (Teacher Rotation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/content/live/{{TEACHER_ID}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "content",
+                "live",
+                "{{TEACHER_ID}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Analytics (Principal)",
+      "item": [
+        {
+          "name": "Subjects Analytics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{PRINCIPAL_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/analytics/subjects",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "analytics",
+                "subjects"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5001/api/v1",
+      "type": "string"
+    }
+  ]
+}

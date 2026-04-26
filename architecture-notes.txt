@@ -1,0 +1,31 @@
+Architecture Notes for Content Broadcasting System
+
+1_auth_and_rbac:
+JWT stored client-side (Bearer token). Middleware verifies on every protected request. Two roles: principal (approve/reject, view all, analytics) and teacher (upload, view own). RBAC enforced via authorize() factory middleware — no role mixing possible. No public registration; accounts are seeded by admin.
+
+2_subject_based_system:
+Each subject has an independent ContentSlot row acting as a scheduling group. ContentSchedule maps each approved content to its slot with a rotation_order and duration_minutes. Subjects rotate independently — Maths and Science broadcast on completely separate cycles. Subject enum is fixed in DB schema to prevent typos and ensure clean grouping.
+
+3_upload_handling:
+Multer processes multipart/form-data. File filter rejects non-image types at middleware level before controller executes. File size enforced by multer limits config. Files stored locally under uploads/content/ with UUID filenames (prevents collisions and path traversal). Upload service abstracts local vs S3 — controllers call uploadFile() without knowing the backend. On content deletion, files are cleaned up from storage to prevent orphans.
+
+4_approval_workflow:
+Content begins as 'pending'. Only principal can approve or reject. Approval triggers ContentSchedule creation (auto-assigns rotation_order). Rejection stores rejection_reason on the Content record. Once approved, status cannot go back to pending — teacher must re-upload. On approval, Redis cache for that teacher is invalidated to ensure fresh data on next broadcast request.
+
+5_scheduling_rotation_logic:
+Fully stateless — no cron jobs, no background workers. Algorithm: (1) Fetch eligible approved content with active time windows for the teacher. (2) Group by subject. (3) For each group, compute total cycle duration. (4) Use (currentTime - cycleAnchorTime) % totalCycle to find elapsed position in current cycle. (5) Walk through rotation_order list accumulating durations until elapsed < accumulated — that item is active. (6) Loop is automatic via modulo. This approach is horizontally scalable — any server instance computes the same active content deterministically.
+
+6_database_design:
+PostgreSQL chosen for relational integrity — foreign keys enforce ownership. UUID primary keys prevent enumeration attacks. Compound indexes on (uploaded_by, status) and (subject, status) optimize the most frequent queries. ContentSlot/ContentSchedule tables decouple scheduling metadata from content metadata — content can exist without a schedule (pending/rejected). Analytics table is write-optimized with upsert pattern.
+
+7_caching_strategy:
+Redis caches /content/live responses. TTL = remaining duration of active content slot (never more than 5 minutes). Cache key includes teacherId and optional subject. On approval/rejection/deletion, affected teacher's cache is invalidated via pattern delete. Redis unavailability is handled gracefully — system falls back to DB queries without crashing.
+
+8_scalability:
+Stateless JWT + stateless scheduling = horizontally scalable with zero coordination between instances. Redis as shared cache works across multiple Node instances. File storage: local works for single node; S3 flag enables cloud storage for multi-node. Rate limiting uses Redis store so limits are shared across instances. Future: add BullMQ for async notification queue when content is approved.
+
+9_folder_structure_rationale:
+controllers/ handle HTTP request/response only. services/ contain all business logic (scheduling, caching, approval). models/ define DB schema. middlewares/ are composable — auth + rbac + upload are independent. validations/ are Joi schemas imported by validate.middleware. This separation ensures testability — services can be unit tested without HTTP context.
+
+10_middleware_chain:
+Request → rateLimiter → auth.middleware → rbac.middleware → validate.middleware → upload.middleware → controller → response. errorHandler.middleware sits at the end of the chain outside routes to catch anything thrown with next(err).
