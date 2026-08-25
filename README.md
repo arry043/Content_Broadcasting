@@ -198,5 +198,3 @@ Client Request
 ---
 
 ## 📄 License
-
-ISC
